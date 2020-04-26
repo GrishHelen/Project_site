@@ -1,0 +1,212 @@
+from flask import Flask, abort, jsonify, make_response
+from data import db_session
+from data import __all_models
+from data.users import User, RegisterForm, LoginForm
+from data.places import Place, PlaceListResource
+from data.comments import Comm, CommResource, CommListResource_All, CommListResource_ForPlace, AddCommForm
+from data.db_session import create_session
+from flask import Flask, render_template, redirect, make_response, request
+from flask_login import LoginManager, logout_user, login_user, login_required, current_user
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    session = db_session.create_session()
+    return session.query(User).get(user_id)
+
+
+def main():
+    db_session.global_init("db/blogs.sqlite")
+    app.run(port=8080, host='127.0.0.1')
+
+
+@app.route("/")
+def index():
+    places = PlaceListResource.get(Place)['places']
+    for place in places:
+        place['rating'] = round(float(place['rating']))
+    # print(places)
+    return render_template("index.html", title='Историческая Москва', places=places)
+
+
+@app.route("/one_place/<place_id>")
+def one_place(place_id):
+    session = create_session()
+    place = session.query(Place).get(place_id)
+    comments = CommListResource_ForPlace.get('', place_id)
+    return render_template('one_place.html', title=place.name, place=place, comms=comments)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def reqister():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if form.password.data != form.password_again.data:
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Пароли не совпадают")
+        session = db_session.create_session()
+        if session.query(User).filter(User.email == form.email.data).first():
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Такой пользователь уже есть")
+        user = User(
+            email=form.email.data,
+            name=form.name.data,
+            surname=form.surname.data,
+            login=form.login.data,
+            about=form.about.data
+        )
+        user.set_password(form.password.data)
+        session.add(user)
+        session.commit()
+        return redirect('/login')
+    return render_template('register.html', title='Регистрация', form=form)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        session = db_session.create_session()
+        user = session.query(User).filter(User.email == form.email.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            return redirect("/")
+        return render_template('login.html',
+                               message="Неправильный логин или пароль",
+                               form=form)
+    return render_template('login.html', title='Авторизация', form=form)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect("/")
+
+
+@app.route('/search')
+def search(places=[]):
+    print(places)
+    return render_template("search.html", title='Поиск', places=places)
+
+
+@app.route('/find_it', methods=["POST"])
+def find_it():
+    field = request.form["stolb"]
+    what = request.form["what"]
+    print(field, what)
+    session = create_session()
+    places = []
+    try:
+        if field == 'name':
+            places = session.query(Place).all()
+            for place in places:
+                if what.lower() not in place.name.lower():
+                    places.remove(place)
+        elif field == 'about':
+            places = session.query(Place).all()
+            what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
+            for place in places:
+                about = ''.join(''.join(''.join(place.about.lower().split(' ')).split(',')).split('.'))
+                if what not in about:
+                    places.remove(place)
+        elif field == 'address':
+            places = session.query(Place).all()
+            what = ''.join(''.join(what.lower().split(' ')).split(','))
+            for place in places:
+                adres = ''.join(''.join(place.address.lower().split(' ')).split(','))
+                print(what, adres, what in adres)
+                if what not in adres:
+                    places.remove(place)
+        elif field == 'rating':
+            places = session.query(Place).all()
+            for place in places:
+                if not(float(what) - 0.5 <= place.rating <= float(what) + 0.5):
+                    places.remove(place)
+    except Exception:
+        return redirect('/search')
+    return search(places=places)
+
+
+@app.route('/categories')
+def categories():
+    return render_template("categories.html", title='Категории')
+
+
+@app.route('/map')
+def map():
+    return render_template("map.html", title='Карта')
+
+
+@app.route('/rating')
+def rating():
+    session = create_session()
+    places = session.query(Place).all()
+    places.sort(key=lambda pl: -pl.rating)
+    return render_template("rating.html", title='Рейтинг', places=places)
+
+
+@app.route('/add_comm/<place_id>', methods=['GET', 'POST'])  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+def add_comm(place_id):
+    form = AddCommForm()
+    if form.validate_on_submit():
+        try:
+            rating = float(form.rating.data)
+            if not (0 <= rating <= 5):
+                raise ValueError
+        except Exception:
+            return render_template('add_comm.html', title='Добавление комментария', form=form)
+        session = db_session.create_session()
+        comm = Comm(
+            text=form.text.data,
+            rating=rating,
+            user_id=current_user.id,
+            user_name=current_user.login,
+            place_id=place_id
+        )
+        session.add(comm)
+        session.commit()
+        place = session.query(Place).get(place_id)
+        try:
+            c = place.comments_list.split(', ')
+        except Exception:
+            c = [str(place.comments_list)]
+        while '' in c:
+            c.remove('')
+        while ' ' in c:
+            c.remove(' ')
+        c.append(str(comm.id))
+        r = ((float(place.rating) * (len(c) - 1)) + float(comm.rating)) / len(c)
+        print(r, c)
+        c = ', '.join(c)
+        pl = Place(
+            id=place.id,
+            address=place.address,
+            about=place.about,
+            rating=r,
+            name=place.name,
+            comments_list=c,
+            site=place.site
+        )
+        session.delete(place)
+        session.add(pl)
+        session.commit()
+        next_page = '/one_place/' + str(place_id)
+        return redirect(next_page)
+    return render_template('add_comm.html', title='Добавление комментария', form=form)
+
+
+@app.route('/smth')
+def smth():
+    return render_template('smth.html')
+
+
+if __name__ == '__main__':
+    main()
