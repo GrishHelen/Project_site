@@ -6,7 +6,9 @@
         border="0" cellpadding="0" cellspacing="2">
     <tbody>
     <tr>
-        <td style="text-align: center; background-color: #98E8FF"><a style="color: #323232;" href="/">
+        <td style="text-align: center;"><a style="color: #646464;" href="/info">
+            О сайте</a></td>
+        <td style="text-align: center;"><a style="color: #646464;" href="/main">
             На главную</a></td>
         <td style="text-align: center"><a style="color: #646464;" href="/search">
             Поиск</a></td>
@@ -34,10 +36,10 @@
 {% endif %}
 </h2>
 {% set img="/static/img/"+place.name+".jpg"%}
-<img src={{img}} alt="здесь должна была быть картинка, но не нашлась">
+<img src={{img}} alt="здесь должна была быть картинка, но она не нашлась">
 <a href="https://yandex.ru/maps/?panorama[point]=37.444075,55.776788&panorama[direction]=228.970000,6.060547&panorama[span]=130.000000,71.919192">Панорама</a>
 <div>{{place.about}}</div>
-<div><a href="http://tsaritsyno-museum.ru/" target="_blank">Официальный сайт: http://tsaritsyno-museum.ru/</a></div>
+<div><a href="http://tsaritsyno-museum.ru/">Официальный сайт: http://tsaritsyno-museum.ru/</a></div>
 <br>
 <h5><span style="text-decoration: underline; color: rgb(89, 89, 255);">Комментарии:</span></h5>
 {% for comm in comms %}

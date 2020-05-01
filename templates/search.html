@@ -6,7 +6,9 @@
         border="0" cellpadding="0" cellspacing="2">
     <tbody>
     <tr>
-        <td style="text-align: center;"><a style="color: #646464;" href="/">
+        <td style="text-align: center;"><a style="color: #646464;" href="/info">
+            О сайте</a></td>
+        <td style="text-align: center;"><a style="color: #646464;" href="/main">
             На главную</a></td>
         <td style="text-align: center; background-color: #98E8FF"><a style="color: #323232;" href="/search">
             Поиск</a></td>
@@ -50,9 +52,10 @@
     {%for place in places %}
         <tr>
           <th>{{place.id}}</th>
-          <th>{{place.name}}</th>
+          <th><a href="/one_place/{{place.id}}">{{place.name}}</a></th>
           <th>{{place.address}}</th>
-          <th>{{place.about}}</th>
+          {% set about=place.about[:250]+'....' %}
+          <th>{{about}}</th>
           <th>{{place.rating}}</th>
         </tr>
     {% endfor %}

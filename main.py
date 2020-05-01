@@ -1,3 +1,5 @@
+import sys
+import requests
 from flask import Flask, abort, jsonify, make_response
 from data import db_session
 from data import __all_models
@@ -14,6 +16,20 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
+def get_coords_for_flace(adres):
+    adres = '+'.join(adres.split())
+    geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&" \
+                       f"geocode={adres}&format=json"
+    response = requests.get(geocoder_request)
+    if response:
+        json_response = response.json()
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        coords = ','.join(toponym["Point"]["pos"].split())
+        return coords
+    else:
+        return ''
+
+
 @login_manager.user_loader
 def load_user(user_id):
     session = db_session.create_session()
@@ -26,8 +42,15 @@ def main():
 
 
 @app.route("/")
+@app.route("/info")
+def info():
+    return render_template("info.html", title='Историческая Москва')
+
+
+@app.route("/main")
+@app.route("/index")
 def index():
-    places = PlaceListResource.get(Place)['places']
+    places = PlaceListResource.get(PlaceListResource())
     for place in places:
         place['rating'] = round(float(place['rating']))
     # print(places)
@@ -38,7 +61,7 @@ def index():
 def one_place(place_id):
     session = create_session()
     place = session.query(Place).get(place_id)
-    comments = CommListResource_ForPlace.get('', place_id)
+    comments = CommListResource_ForPlace.get(CommListResource_ForPlace(), place_id)
     return render_template('one_place.html', title=place.name, place=place, comms=comments)
 
 
@@ -52,8 +75,7 @@ def reqister():
                                    message="Пароли не совпадают")
         session = db_session.create_session()
         if session.query(User).filter(User.email == form.email.data).first():
-            return render_template('register.html', title='Регистрация',
-                                   form=form,
+            return render_template('register.html', title='Регистрация', form=form,
                                    message="Такой пользователь уже есть")
         user = User(
             email=form.email.data,
@@ -93,7 +115,6 @@ def logout():
 
 @app.route('/search')
 def search(places=[]):
-    print(places)
     return render_template("search.html", title='Поиск', places=places)
 
 
@@ -101,7 +122,6 @@ def search(places=[]):
 def find_it():
     field = request.form["stolb"]
     what = request.form["what"]
-    print(field, what)
     session = create_session()
     places = []
     try:
@@ -122,13 +142,12 @@ def find_it():
             what = ''.join(''.join(what.lower().split(' ')).split(','))
             for place in places:
                 adres = ''.join(''.join(place.address.lower().split(' ')).split(','))
-                print(what, adres, what in adres)
                 if what not in adres:
                     places.remove(place)
         elif field == 'rating':
             places = session.query(Place).all()
             for place in places:
-                if not(float(what) - 0.5 <= place.rating <= float(what) + 0.5):
+                if not (float(what) - 0.5 <= place.rating <= float(what) + 0.5):
                     places.remove(place)
     except Exception:
         return redirect('/search')
@@ -142,7 +161,21 @@ def categories():
 
 @app.route('/map')
 def map():
-    return render_template("map.html", title='Карта')
+    places = PlaceListResource.get(PlaceListResource())
+    sp = [get_coords_for_flace(place['address']) for place in places]
+    while '' in sp:
+        sp.remove('')
+
+    pt = '~'.join([i + ',comma' for i in sp])
+    map_request = f"https://static-maps.yandex.ru/1.x/?pt={pt}&l=map,skl"
+    response = requests.get(map_request)
+    if response:
+        map_file = "static/img/map.png"
+        with open(map_file, "wb") as file:
+            file.write(response.content)
+
+    link = f"https://yandex.ru/maps/?ll37.622504,55.753215&pt={'~'.join(sp)}&l=map,z=12"
+    return render_template("map.html", title='Карта', href=link)
 
 
 @app.route('/rating')
@@ -184,7 +217,6 @@ def add_comm(place_id):
             c.remove(' ')
         c.append(str(comm.id))
         r = ((float(place.rating) * (len(c) - 1)) + float(comm.rating)) / len(c)
-        print(r, c)
         c = ', '.join(c)
         pl = Place(
             id=place.id,
