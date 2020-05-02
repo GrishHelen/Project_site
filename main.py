@@ -39,7 +39,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8089, host='127.0.0.1')
+    app.run(port=8081, host='127.0.0.1')
 
 
 @app.route("/")
@@ -123,35 +123,36 @@ def find_it():
     field = request.form["stolb"]
     what = request.form["what"]
     session = create_session()
-    places = []
+    pls = []
     try:
         if field == 'name':
+            print(field, what)
             places = session.query(Place).all()
             for place in places:
-                if what.lower() not in place.name.lower():
-                    places.remove(place)
+                if what.lower() in place.name.lower():
+                    pls.append(place)
         elif field == 'about':
             places = session.query(Place).all()
             what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
             for place in places:
                 about = ''.join(''.join(''.join(place.about.lower().split(' ')).split(',')).split('.'))
-                if what not in about:
-                    places.remove(place)
+                if what in about:
+                    pls.append(place)
         elif field == 'address':
             places = session.query(Place).all()
             what = ''.join(''.join(what.lower().split(' ')).split(','))
             for place in places:
                 adres = ''.join(''.join(place.address.lower().split(' ')).split(','))
-                if what not in adres:
-                    places.remove(place)
+                if what in adres:
+                    pls.append(place)
         elif field == 'rating':
             places = session.query(Place).all()
             for place in places:
-                if not (float(what) - 0.5 <= place.rating <= float(what) + 0.5):
-                    places.remove(place)
+                if float(what) - 0.5 <= place.rating <= float(what) + 0.5:
+                    pls.append(place)
     except Exception:
         return redirect('/search')
-    return search(places=places)
+    return search(places=pls)
 
 
 @app.route('/categories')
