@@ -1,9 +1,9 @@
 from .users import User, UsersResource
-from .places import Place, PlaceResource, PlaceListResource
+from .places import Place, PlaceResource, PlaceListResource_ForCateg, PlaceListResource_All
+from .categories import Category, CategoryListResource, CategoryResource
 from .db_session import create_session, global_init
 
 global_init("db/blogs.sqlite")
-
 
 '''
 user = User()

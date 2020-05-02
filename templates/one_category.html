@@ -12,7 +12,7 @@
             На главную</a></td>
         <td style="text-align: center"><a style="color: #646464;" href="/search">
             Поиск</a></td>
-        <td style="text-align: center; background-color: #98E8FF"><a style="color: #323232;" href="/categories">
+        <td style="text-align: center;"><a style="color: #646464;" href="/categories">
             Категории</a></td>
         <td style="text-align: center;"><a style="color: #646464;" href="/map">
             Карта</a></td>
@@ -22,17 +22,13 @@
     </tbody>
 </table>
 
-{% for categ in categs %}
 <br>
-<div><big><a style="text-decoration: underline; color: #B40000;" href="/one_category/{{categ.id}}">
-    {{loop.index}}.&nbsp;&nbsp;&nbsp;{{categ.name}}</a></big></div>
-<u1>
-    <u1>
-        {% for place in categs[categ] %}
-        <li><a style="color: black;" href="/one_place/{{place.id}}">{{place.name}}</a></li>
-        {% endfor %}
-    </u1>
-</u1>
+<h3 style="text-decoration: underline; color: #820000;">Категория: {{categ.name}}</h3>
+<br>
+
+<h5>Места:</h5>
+{% for place in places %}
+    <div>&nbsp;&nbsp;&nbsp;<a href="/one_place/{{place.id}}" style="color: black;">{{loop.index}}.&nbsp;{{place.name}}</a></div>
 {% endfor %}
 
 <br>

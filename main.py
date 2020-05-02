@@ -4,7 +4,8 @@ from flask import Flask, abort, jsonify, make_response
 from data import db_session
 from data import __all_models
 from data.users import User, RegisterForm, LoginForm
-from data.places import Place, PlaceListResource, PlaceResource
+from data.places import Place, PlaceListResource_All, PlaceListResource_ForCateg, PlaceResource
+from data.categories import Category, CategoryResource, CategoryListResource
 from data.comments import Comm, CommResource, CommListResource_All, CommListResource_ForPlace, AddCommForm
 from data.db_session import create_session
 from flask import Flask, render_template, redirect, make_response, request
@@ -25,7 +26,7 @@ def get_coords_for_flace(adres):
         json_response = response.json()
         toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
         coords = ','.join(toponym["Point"]["pos"].split())
-        print(coords)
+        # print(coords)
         return coords
     else:
         return ''
@@ -39,7 +40,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8081, host='127.0.0.1')
+    app.run(port=8087, host='127.0.0.1')
 
 
 @app.route("/")
@@ -51,7 +52,7 @@ def info():
 @app.route("/main")
 @app.route("/index")
 def index():
-    places = PlaceListResource.get(PlaceListResource())
+    places = PlaceListResource_All.get(PlaceListResource_All())
     for place in places:
         place['rating'] = round(float(place['rating']))
     # print(places)
@@ -63,6 +64,13 @@ def one_place(place_id):
     place = PlaceResource.get(PlaceResource(), place_id)
     comments = CommListResource_ForPlace.get(CommListResource_ForPlace(), place_id)
     return render_template('one_place.html', title=place.name, place=place, comms=comments)
+
+
+@app.route("/one_category/<categ_id>")
+def one_category(categ_id):
+    categ = CategoryResource.get(CategoryResource(), categ_id)
+    places = PlaceListResource_ForCateg.get(PlaceListResource_ForCateg(), categ_id)
+    return render_template('one_category.html', title=categ.name, categ=categ, places=places)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -126,7 +134,6 @@ def find_it():
     pls = []
     try:
         if field == 'name':
-            print(field, what)
             places = session.query(Place).all()
             for place in places:
                 if what.lower() in place.name.lower():
@@ -157,12 +164,16 @@ def find_it():
 
 @app.route('/categories')
 def categories():
-    return render_template("categories.html", title='Категории')
+    categs = {}
+    ccc = CategoryListResource.get(CategoryListResource())
+    for c in ccc:
+        categs[c] = PlaceListResource_ForCateg.get(PlaceListResource_ForCateg(), c.id)
+    return render_template("categories.html", title='Категории', categs=categs)
 
 
 @app.route('/map')
 def map():
-    places = PlaceListResource.get(PlaceListResource())
+    places = PlaceListResource_All.get(PlaceListResource_All())
     sp = [get_coords_for_flace(place['address']) for place in places]
     while '' in sp:
         sp.remove('')
@@ -234,11 +245,6 @@ def add_comm(place_id):
         next_page = '/one_place/' + str(place_id)
         return redirect(next_page)
     return render_template('add_comm.html', title='Добавление комментария', form=form)
-
-
-@app.route('/smth')
-def smth():
-    return render_template('smth.html')
 
 
 if __name__ == '__main__':

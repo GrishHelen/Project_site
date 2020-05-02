@@ -2,6 +2,7 @@ from pickle import loads, dumps
 from flask import jsonify
 from flask_restful import reqparse, abort, Resource
 from .db_session import SqlAlchemyBase, create_session
+from .categories import Category, CategoryResource
 import sqlalchemy
 from sqlalchemy import orm
 from sqlalchemy_serializer import SerializerMixin
@@ -42,7 +43,7 @@ class PlaceResource(Resource):
         return jsonify({'success': 'OK'})
 
 
-class PlaceListResource(Resource):
+class PlaceListResource_All(Resource):
     def get(self):
         session = create_session()
         places = session.query(Place).all()
@@ -78,3 +79,20 @@ class PlaceListResource(Resource):
         session.add(place)
         session.commit()
         return jsonify({'success': 'OK'})
+
+
+class PlaceListResource_ForCateg(Resource):
+    def get(self, categ_id):
+        session = create_session()
+        categ = CategoryResource.get(CategoryResource(), categ_id=categ_id)
+        ids = list(map(int, str(categ.places_id).split(',')))
+        places = session.query(Place).filter(Place.id.in_(ids)).all()
+        return places
+
+    def delete(self, categ_id):
+        session = create_session()
+        categ = CategoryResource.get(CategoryResource(), categ_id=categ_id)
+        ids = list(map(int, str(categ.places_id).split(',')))
+        places = session.query(Place).filter(Place.id.in_(ids)).all()
+        for place in places:
+            PlaceResource.delete(PlaceResource(), place.id)
