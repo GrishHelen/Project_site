@@ -21,12 +21,18 @@ class Place(SqlAlchemyBase, SerializerMixin):
     name = sqlalchemy.Column(sqlalchemy.String)
     address = sqlalchemy.Column(sqlalchemy.String)
     about = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    picture = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     rating = sqlalchemy.Column(sqlalchemy.Float, default=0.0)
     comments_list = sqlalchemy.Column(sqlalchemy.String, default='')
     site = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
 
 class PlaceResource(Resource):
+    def get(self, place_id):
+        session = create_session()
+        place = session.query(Place).get(place_id)
+        return place
+
     def delete(self, place_id):
         abort_if_place_not_found(place_id)
         session = create_session()

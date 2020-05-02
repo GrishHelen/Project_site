@@ -4,7 +4,7 @@ from flask import Flask, abort, jsonify, make_response
 from data import db_session
 from data import __all_models
 from data.users import User, RegisterForm, LoginForm
-from data.places import Place, PlaceListResource
+from data.places import Place, PlaceListResource, PlaceResource
 from data.comments import Comm, CommResource, CommListResource_All, CommListResource_ForPlace, AddCommForm
 from data.db_session import create_session
 from flask import Flask, render_template, redirect, make_response, request
@@ -25,6 +25,7 @@ def get_coords_for_flace(adres):
         json_response = response.json()
         toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
         coords = ','.join(toponym["Point"]["pos"].split())
+        print(coords)
         return coords
     else:
         return ''
@@ -38,7 +39,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8080, host='127.0.0.1')
+    app.run(port=8089, host='127.0.0.1')
 
 
 @app.route("/")
@@ -59,8 +60,7 @@ def index():
 
 @app.route("/one_place/<place_id>")
 def one_place(place_id):
-    session = create_session()
-    place = session.query(Place).get(place_id)
+    place = PlaceResource.get(PlaceResource(), place_id)
     comments = CommListResource_ForPlace.get(CommListResource_ForPlace(), place_id)
     return render_template('one_place.html', title=place.name, place=place, comms=comments)
 
@@ -167,14 +167,14 @@ def map():
         sp.remove('')
 
     pt = '~'.join([i + ',comma' for i in sp])
-    map_request = f"https://static-maps.yandex.ru/1.x/?pt={pt}&l=map,skl"
+    map_request = f"https://static-maps.yandex.ru/1.x/?ll=37.622504,55.753215&pt={pt}&l=map,skl&z=9"
     response = requests.get(map_request)
     if response:
-        map_file = "static/img/map.png"
+        map_file = "static/img/map.jpg"
         with open(map_file, "wb") as file:
             file.write(response.content)
 
-    link = f"https://yandex.ru/maps/?ll37.622504,55.753215&pt={'~'.join(sp)}&l=map,z=12"
+    link = f"https://yandex.ru/maps/?ll=37.622504,55.753215&pt={'~'.join(sp)}&l=map,z=12"
     return render_template("map.html", title='Карта', href=link)
 
 

@@ -37,9 +37,7 @@
         <img src="/static/img/star_5.jpg">
     {% endif %}
     </h2>
-    {% set img="/static/img/"+place.name+".jpg"%}
-    <img src={{img}} alt="здесь должна была быть картинка, но не нашлась">
-    {% set about=place.about[:500]+'.....' %}
+    {% set about=place.about[:400]+'.....' %}
     <div>{{about}}</div>
     {% if current_user.is_authenticated %}
         <a class="btn btn-primary" href="/add_comm/{{place.id}}">Добавить комментарий</a>
