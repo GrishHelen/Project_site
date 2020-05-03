@@ -1,6 +1,7 @@
-import sys
-import requests
 from flask import Flask, abort, jsonify, make_response
+import sys
+import sqlite3
+import requests
 from data import db_session
 from data import __all_models
 from data.users import User, RegisterForm, LoginForm
@@ -26,7 +27,7 @@ def get_coords_for_flace(adres):
         json_response = response.json()
         toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
         coords = ','.join(toponym["Point"]["pos"].split())
-        # print(coords)
+        print(coords)
         return coords
     else:
         return ''
@@ -40,7 +41,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8087, host='127.0.0.1')
+    app.run(port=8090, host='127.0.0.1')
 
 
 @app.route("/")
@@ -54,7 +55,7 @@ def info():
 def index():
     places = PlaceListResource_All.get(PlaceListResource_All())
     for place in places:
-        place['rating'] = round(float(place['rating']))
+        place.rating = round(float(place.rating))
     # print(places)
     return render_template("index.html", title='Историческая Москва', places=places)
 
@@ -174,9 +175,15 @@ def categories():
 @app.route('/map')
 def map():
     places = PlaceListResource_All.get(PlaceListResource_All())
-    sp = [get_coords_for_flace(place['address']) for place in places]
-    while '' in sp:
-        sp.remove('')
+    for place in places:
+        if place.coords in [None, '', ' ', '  ']:
+            con = sqlite3.connect("db/blogs.sqlite")
+            cur = con.cursor()
+            cur.execute(f"UPDATE places SET coords='{get_coords_for_flace(place.address)}' WHERE id={place.id}")
+            con.commit()
+            con.close()
+
+    sp = [pl.coords for pl in places]
 
     pt = '~'.join([i + ',comma' for i in sp])
     map_request = f"https://static-maps.yandex.ru/1.x/?ll=37.622504,55.753215&pt={pt}&l=map,skl&z=9"

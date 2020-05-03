@@ -22,6 +22,7 @@ class Place(SqlAlchemyBase, SerializerMixin):
     name = sqlalchemy.Column(sqlalchemy.String)
     address = sqlalchemy.Column(sqlalchemy.String)
     about = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    coords = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     picture = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     rating = sqlalchemy.Column(sqlalchemy.Float, default=0.0)
     comments_list = sqlalchemy.Column(sqlalchemy.String, default='')
@@ -47,17 +48,7 @@ class PlaceListResource_All(Resource):
     def get(self):
         session = create_session()
         places = session.query(Place).all()
-        sp = []
-        d = {}
-        for item in places:
-            d['id'] = item.id
-            d['name'] = item.name
-            d['address'] = item.address
-            d['about'] = item.about
-            d['rating'] = item.rating
-            sp.append(d)
-            d = {}
-        return sp
+        return places
 
     def post(self):
         parser = reqparse.RequestParser()
