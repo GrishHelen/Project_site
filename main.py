@@ -41,7 +41,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8090, host='127.0.0.1')
+    app.run(port=8081, host='127.0.0.1')
 
 
 @app.route("/")
@@ -62,9 +62,15 @@ def index():
 
 @app.route("/one_place/<place_id>")
 def one_place(place_id):
+    categs = CategoryListResource.get(CategoryListResource())
+    categ_list = []
+    for cat in categs:
+        if str(place_id) in str(cat.places_id).split(','):
+            categ_list.append(cat.name)
+    categ_list = '; '.join(categ_list)
     place = PlaceResource.get(PlaceResource(), place_id)
     comments = CommListResource_ForPlace.get(CommListResource_ForPlace(), place_id)
-    return render_template('one_place.html', title=place.name, place=place, comms=comments)
+    return render_template('one_place.html', title=place.name, place=place, comms=comments, categ_list=categ_list)
 
 
 @app.route("/one_category/<categ_id>")
@@ -139,6 +145,17 @@ def find_it():
             for place in places:
                 if what.lower() in place.name.lower():
                     pls.append(place)
+        elif field == 'category':
+            places = session.query(Place).all()
+            what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
+            categ = session.query(Category).all()
+            for c in categ:
+                if what in c.name.lower():
+                    categ = c
+                    break
+            for place in places:
+                if str(place.id) in categ.places_id.split(','):
+                    pls.append(place)
         elif field == 'about':
             places = session.query(Place).all()
             what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
@@ -182,6 +199,7 @@ def map():
             cur.execute(f"UPDATE places SET coords='{get_coords_for_flace(place.address)}' WHERE id={place.id}")
             con.commit()
             con.close()
+            return redirect('/map')
 
     sp = [pl.coords for pl in places]
 

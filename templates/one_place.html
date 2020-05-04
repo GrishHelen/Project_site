@@ -24,31 +24,33 @@
 
 <br>
 <h2 style="text-decoration: underline; color: #820000;">{{place.name}}
-{% if place.rating == 1 %}
+    {% if place.rating == 1 %}
     <img src="/../static/img/star_1.jpg">
-{% elif place.rating == 2 %}
+    {% elif place.rating == 2 %}
     <img src="/../static/img/star_2.jpg">
-{% elif place.rating == 3 %}
+    {% elif place.rating == 3 %}
     <img src="/../static/img/star_3.jpg">
-{% elif place.rating == 4 %}
+    {% elif place.rating == 4 %}
     <img src="/../static/img/star_4.jpg">
-{% elif place.rating == 5 %}
+    {% elif place.rating == 5 %}
     <img src="/../static/img/star_5.jpg">
-{% endif %}
+    {% endif %}
 </h2>
 <img src={{place.picture}} alt="здесь должна была быть картинка, но она не нашлась">
 <div>{{place.about}}</div>
+<div><a style="color: black" href="/categories">Категории:</a><a style="color: black" href="/categories"> {{categ_list}}</a></div>
+<div><a style="text-decoration: underline;">Адрес:</a> {{place.address}}</div>
 {% if place.site != ' ' %}
-    <div><a href={{place.site}}>Cайт: {{place.site}}</a></div>
+<div><a href={{place.site}}>Cайт: {{place.site}}</a></div>
 {% endif %}
 <br>
 <h5><span style="text-decoration: underline; color: rgb(89, 89, 255);">Комментарии:</span></h5>
 {% for comm in comms %}
-    <div>&nbsp;&nbsp;&nbsp;<a style="text-decoration: underline;">{{comm.user_name}}:</a> {{comm.text}}</div>
-    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Оценка: {{comm.rating}}</div>
+<div>&nbsp;&nbsp;&nbsp;<a style="text-decoration: underline;">{{comm.user_name}}:</a> {{comm.text}}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Оценка: {{comm.rating}}</div>
 {% endfor %}
 {% if current_user.is_authenticated %}
-    <a class="btn btn-primary" href="/add_comm/{{place.id}}">Добавить комментарий</a>
+<a class="btn btn-primary" href="/add_comm/{{place.id}}">Добавить комментарий</a>
 {% endif %}
 <br><br>
 {% endblock %}
