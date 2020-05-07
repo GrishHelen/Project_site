@@ -41,7 +41,7 @@ def load_user(user_id):
 
 def main():
     db_session.global_init("db/blogs.sqlite")
-    app.run(port=8081, host='127.0.0.1')
+    app.run(port=8086, host='127.0.0.1')
 
 
 @app.route("/")
@@ -145,17 +145,6 @@ def find_it():
             for place in places:
                 if what.lower() in place.name.lower():
                     pls.append(place)
-        elif field == 'category':
-            places = session.query(Place).all()
-            what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
-            categ = session.query(Category).all()
-            for c in categ:
-                if what in c.name.lower():
-                    categ = c
-                    break
-            for place in places:
-                if str(place.id) in categ.places_id.split(','):
-                    pls.append(place)
         elif field == 'about':
             places = session.query(Place).all()
             what = ''.join(''.join(''.join(what.lower().split(' ')).split(',')).split('.'))
@@ -187,6 +176,14 @@ def categories():
     for c in ccc:
         categs[c] = PlaceListResource_ForCateg.get(PlaceListResource_ForCateg(), c.id)
     return render_template("categories.html", title='Категории', categs=categs)
+
+
+@app.route('/find_cat', methods=["POST"])
+def find_cat():
+    cat = request.form["stolb"]
+    session = create_session()
+    categ = session.query(Category).filter(Category.name == cat).first()
+    return redirect(f"/one_category/{categ.id}")
 
 
 @app.route('/map')
